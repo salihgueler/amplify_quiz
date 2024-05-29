@@ -22,7 +22,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import QuizCategoryScreen from "./src/category_selection/QuizCategoryScreen";
-import QuestionScreen, { ResultScreen } from "./src/quiz/QuestionScreen";
+import QuestionScreen, {ResultScreen} from "./src/quiz/QuestionScreen";
 import GameLobbyScreen from "./src/search_game/GameLobbyScreen";
 import ProfileScreen from "./src/profile/ProfileScreen";
 import LeaderboardScreen from "./src/leaderboard/LeaderboardScreen";
@@ -38,9 +38,9 @@ export type ScreenProps<T extends keyof RootStackParamList> = {
 export type RootStackParamList = {
   HomeScreen: undefined;
   QuizCategoryScreen: undefined;
-  GameLobbyScreen: undefined;
-  QuestionScreen: undefined;
-  ResultScreen: undefined;
+  GameLobbyScreen: { selectedCategories: string[] };
+  QuestionScreen: { content: string };
+  ResultScreen: Number;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
