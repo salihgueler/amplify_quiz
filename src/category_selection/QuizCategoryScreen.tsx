@@ -6,10 +6,10 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
+import { RootStackParamList } from "../../App";
+import { NativeStackScreenProps } from "react-native-screens/lib/typescript/native-stack";
 
-interface Props {
-  navigation: any; // Replace with the appropriate type for navigation prop
-}
+type Props = NativeStackScreenProps<RootStackParamList, "QuizCategoryScreen">;
 
 const QuizCategoryScreen: React.FC<Props> = ({ navigation }) => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -28,11 +28,11 @@ const QuizCategoryScreen: React.FC<Props> = ({ navigation }) => {
   ];
 
   const toggleCategory = (category: string) => {
-    if (selectedCategories.includes(category)) {
-      setSelectedCategories(selectedCategories.filter((c) => c !== category));
-    } else {
-      setSelectedCategories([...selectedCategories, category]);
-    }
+    setSelectedCategories((prevSelectedCategories) =>
+      prevSelectedCategories.includes(category)
+        ? prevSelectedCategories.filter((c) => c !== category)
+        : [...prevSelectedCategories, category]
+    );
   };
 
   const renderCategories = () => {
@@ -60,7 +60,6 @@ const QuizCategoryScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleNextScreen = () => {
-    // Pass the selected categories to the next screen
     navigation.replace("GameLobbyScreen", { selectedCategories });
   };
 
@@ -122,13 +121,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#FF6347",
     paddingVertical: 12,
     marginBottom: 16,
-    alignSelf: "stretch", // This will make the button fill the width
+    alignSelf: "stretch",
   },
   nextButtonText: {
     color: "#ffffff",
     fontSize: 16,
     fontWeight: "bold",
-    textAlign: "center", // This will center the text within the button
+    textAlign: "center",
   },
 });
 

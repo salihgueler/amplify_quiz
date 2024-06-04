@@ -1,57 +1,34 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
-import {RootStackParamList, ScreenProps} from "../../App";
-import { Schema } from "../../amplify/data/resource";
-import { generateClient } from "@aws-amplify/api";
-import { useAuthenticator } from "@aws-amplify/ui-react-native";
-import {NativeStackScreenProps} from "react-native-screens/native-stack";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { ScreenProps } from "../../App";
+import { fetchUserAttributes } from "aws-amplify/auth";
 
-type GameLobbyScreenProps = NativeStackScreenProps<RootStackParamList, 'GameLobbyScreen'>;
-
-const GameLobbyScreen: React.FC<GameLobbyScreenProps> = ({ navigation, route }) => {
-  const [informationText, setInformationText] = useState<string>("Looking for a game...");
-  const { user } = useAuthenticator((context) => [context.user]);
-  const client = generateClient<Schema>();
-
-  const params = route?.params || { selectedCategories: [] };
+const SearchGameScreen: React.FC<ScreenProps<"HomeScreen">> = ({
+  navigation,
+}) => {
+  const [username, setUsername] = useState<string>("");
 
   useEffect(() => {
-    const fetchData = async () => {
-      for (const element of params.selectedCategories) {
-        const games = await client.models.GamePool.list({
-          filter: {
-            category: {
-              eq: element,
-            },
-          },
-        });
-
-        if (games.data.length !== 0) {
-          setInformationText("Game Found, generating questions");
-          const response = await client.queries.askBedrock({
-            category: element,
-          });
-          const res = JSON.parse(response.data?.body!);
-          const content: string = res.content[0].text;
-          navigation.replace("QuestionScreen", {content: content});
-          break;
-        } else {
-          setInformationText("Game created, waiting other players.");
-          await client.models.GamePool.create({
-            category: element,
-            queue: [user.userId],
-          });
-        }
-      }
+    const fetchAttributes = async () => {
+      const attributes = await fetchUserAttributes();
+      setUsername(attributes?.preferred_username ?? "");
     };
 
-    fetchData();
+    fetchAttributes();
   }, []);
 
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="large" color="#FF6347" />
-      <Text style={styles.loadingText}>{informationText}</Text>
+      <Text style={styles.welcomeText}>
+        Welcome {username}.{"\n\n"}Click the button below{"\n"}to search for a
+        game!
+      </Text>
+      <TouchableOpacity
+        style={styles.searchButton}
+        onPress={() => navigation.navigate("QuizCategoryScreen")}
+      >
+        <Text style={styles.searchButtonText}>Search Game</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -59,22 +36,28 @@ const GameLobbyScreen: React.FC<GameLobbyScreenProps> = ({ navigation, route }) 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
-    alignItems: "center",
     justifyContent: "center",
+    alignItems: "center",
   },
-  loadingText: {
+  welcomeText: {
     fontSize: 18,
     fontWeight: "bold",
     color: "#333333",
-    marginTop: 20,
+    marginBottom: 20,
+    textAlign: "center",
+    paddingHorizontal: 20,
   },
-  countdownText: {
+  searchButton: {
+    backgroundColor: "#FF6347",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+  },
+  searchButtonText: {
+    color: "#ffffff",
     fontSize: 16,
     fontWeight: "bold",
-    color: "#333333",
-    marginTop: 10,
   },
 });
 
-export default GameLobbyScreen;
+export default SearchGameScreen;

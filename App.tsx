@@ -1,32 +1,30 @@
 import React from "react";
-import {
-  Button,
-  View,
-  StyleSheet,
-  Text,
-  ActivityIndicator,
-} from "react-native";
-
+import { View, StyleSheet } from "react-native";
 import { Amplify } from "aws-amplify";
 import { Authenticator, useAuthenticator } from "@aws-amplify/ui-react-native";
-
 import outputs from "./amplify_outputs.json";
-
 import { NavigationContainer } from "@react-navigation/native";
 import {
   createStackNavigator,
   StackNavigationProp,
 } from "@react-navigation/stack";
-
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import QuizCategoryScreen from "./src/category_selection/QuizCategoryScreen";
-import QuestionScreen, {ResultScreen} from "./src/quiz/QuestionScreen";
+import QuestionScreen, { ResultScreen } from "./src/quiz/QuestionScreen";
 import GameLobbyScreen from "./src/search_game/GameLobbyScreen";
 import ProfileScreen from "./src/profile/ProfileScreen";
 import LeaderboardScreen from "./src/leaderboard/LeaderboardScreen";
 import SearchGameScreen from "./src/search_game/SearchGameScreen";
+
+export type RootStackParamList = {
+  HomeScreen: undefined;
+  QuizCategoryScreen: undefined;
+  GameLobbyScreen: { selectedCategories: string[] };
+  QuestionScreen: { content: string };
+  ResultScreen: { score: number };
+};
 
 export type ScreenNavigationProp<T extends keyof RootStackParamList> =
   StackNavigationProp<RootStackParamList, T>;
@@ -35,95 +33,61 @@ export type ScreenProps<T extends keyof RootStackParamList> = {
   navigation: ScreenNavigationProp<T>;
 };
 
-export type RootStackParamList = {
-  HomeScreen: undefined;
-  QuizCategoryScreen: undefined;
-  GameLobbyScreen: { selectedCategories: string[] };
-  QuestionScreen: { content: string };
-  ResultScreen: Number;
-};
-
 const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
 
 Amplify.configure(outputs);
 
-const SignOutButton = () => {
+const SignOutButton: React.FC = () => {
   const { signOut } = useAuthenticator();
-
   return (
-    <View style={styles.signOutButton}>
-      <TouchableOpacity style={styles.signOutButton} onPress={signOut}>
-        <Ionicons name="log-out-outline" size={32} style={{ margin: 4 }} />
-      </TouchableOpacity>
-    </View>
+    <TouchableOpacity style={styles.signOutButton} onPress={signOut}>
+      <Ionicons name="log-out-outline" size={32} style={{ margin: 4 }} />
+    </TouchableOpacity>
   );
 };
 
-const HomeScreen = ({ navigation }: ScreenProps<"HomeScreen">) => (
+const HomeScreen: React.FC<ScreenProps<"HomeScreen">> = ({ navigation }) => (
   <Tab.Navigator
     screenOptions={({ route }) => ({
       tabBarIcon: ({ focused, color, size }) => {
-        const iconColor = focused ? "#FF6347" : "#808080"; // Orange for active icon, gray for inactive icon
-
+        const iconColor = focused ? "#FF6347" : "#808080";
+        let iconName: keyof typeof Ionicons.glyphMap = "search-outline";
         if (route.name === "SearchGame") {
-          return (
-            <Ionicons
-              name={focused ? "search" : "search-outline"}
-              size={size}
-              color={iconColor}
-            />
-          );
+          iconName = focused ? "search" : "search-outline";
         } else if (route.name === "Leaderboard") {
-          return (
-            <Ionicons
-              name={focused ? "trophy" : "trophy-outline"}
-              size={size}
-              color={iconColor}
-            />
-          );
+          iconName = focused ? "trophy" : "trophy-outline";
         } else if (route.name === "Profile") {
-          return (
-            <Ionicons
-              name={focused ? "person-circle" : "person-circle-outline"}
-              size={size}
-              color={iconColor}
-            />
-          );
+          iconName = focused ? "person-circle" : "person-circle-outline";
         }
+        return <Ionicons name={iconName} size={size} color={iconColor} />;
       },
-      tabBarActiveTintColor: "#FF6347", // Set the active tint color for the labels
-      tabBarInactiveTintColor: "#808080", //
+      tabBarActiveTintColor: "#FF6347",
+      tabBarInactiveTintColor: "#808080",
     })}
   >
     <Tab.Screen
       name="SearchGame"
       component={SearchGameScreen}
-      options={{
-        title: "Search Game",
-      }}
+      options={{ title: "Search Game" }}
     />
-
     <Tab.Screen
       name="Leaderboard"
       component={LeaderboardScreen}
-      options={{
-        title: "Leaderboard",
-      }}
+      options={{ title: "Leaderboard" }}
     />
-
     <Tab.Screen
       name="Profile"
       component={ProfileScreen}
       options={{
-        headerRight: SignOutButton,
         title: "Profile",
+        headerRight: SignOutButton,
       }}
     />
   </Tab.Navigator>
 );
 
-const App = () => {
+const App: React.FC = () => {
   return (
     <Authenticator.Provider>
       <Authenticator>
@@ -132,23 +96,17 @@ const App = () => {
             <Stack.Screen
               name="HomeScreen"
               component={HomeScreen}
-              options={{
-                headerShown: false,
-              }}
+              options={{ headerShown: false }}
             />
             <Stack.Screen
               name="GameLobbyScreen"
               component={GameLobbyScreen}
-              options={{
-                headerShown: false,
-              }}
+              options={{ headerShown: false }}
             />
             <Stack.Screen
               name="QuizCategoryScreen"
               component={QuizCategoryScreen}
-              options={{
-                title: "Quiz Categories",
-              }}
+              options={{ title: "Quiz Categories" }}
             />
             <Stack.Screen
               name="QuestionScreen"
@@ -184,42 +142,27 @@ const styles = StyleSheet.create({
   },
   welcomeText: {
     fontSize: 18,
-
     fontWeight: "bold",
-
     color: "#333333",
-
     marginBottom: 20,
-
     textAlign: "center",
-
     paddingHorizontal: 20,
   },
-
   searchButton: {
     backgroundColor: "#FF6347",
-
     paddingVertical: 12,
-
     paddingHorizontal: 20,
-
     borderRadius: 25,
   },
-
   searchButtonText: {
     color: "#ffffff",
-
     fontSize: 16,
-
     fontWeight: "bold",
   },
   loadingText: {
     fontSize: 18,
-
     fontWeight: "bold",
-
     color: "#333333",
-
     marginTop: 20,
   },
 });

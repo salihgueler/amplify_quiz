@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-
 import {
   View,
   Text,
@@ -9,36 +8,26 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
-
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
 import { useAuthenticator } from "@aws-amplify/ui-react-native";
-
-import { fetchUserAttributes } from "aws-amplify/auth";
 import { Buffer } from "buffer";
-
 import * as Progress from "react-native-progress";
 import { getUrl, uploadData } from "aws-amplify/storage";
+import { fetchUserAttributes } from "aws-amplify/auth";
 
 interface UserData {
   profilePicture: string;
-
   username: string;
-
   id: string;
-
   email: string;
 }
 
-const ProfileScreen = () => {
-
+const ProfileScreen: React.FC = () => {
   const [userData, setUserData] = useState<UserData>({
     profilePicture: "https://via.placeholder.com/150",
-
     username: "",
-
     id: "",
-
     email: "",
   });
 
@@ -47,35 +36,29 @@ const ProfileScreen = () => {
   );
 
   const [uploadProgress, setUploadProgress] = useState<number>(0);
-
   const { user } = useAuthenticator((context) => [context.user]);
 
   useEffect(() => {
     fetchUserAttributes().then((attributes) => {
       setUserData((prevUserData) => ({
         ...prevUserData,
-
         username: attributes?.preferred_username ?? "",
-
         id: user.userId,
-
         email: user.signInDetails?.loginId ?? "",
       }));
     });
   }, [user]);
 
   useEffect(() => {
-    getUrl({ path: "profile-pictures/" + user.userId + ".png" }).then(
-      (result) => {
-        setProfilePictureFile(result.url.toString());
-        setUserData((prevUserData) => ({
-          ...prevUserData,
-
-          profilePicture: result.url.toString(),
-        }));
-      }
-    );
-  }, ["https://via.placeholder.com/150"]);
+    getUrl({ path: `profile-pictures/${user.userId}.png` }).then((result) => {
+      const profileUrl = result.url.toString();
+      setProfilePictureFile(profileUrl);
+      setUserData((prevUserData) => ({
+        ...prevUserData,
+        profilePicture: profileUrl,
+      }));
+    });
+  }, []);
 
   const handleUpdateProfile = async () => {
     setUploadProgress(0);
@@ -90,7 +73,7 @@ const ProfileScreen = () => {
       const buffer = Buffer.from(fileContent, "base64");
 
       await uploadData({
-        path: "profile-pictures/" + user.userId + ".png",
+        path: `profile-pictures/${user.userId}.png`,
         data: buffer,
         options: {
           contentType: "image/png",
@@ -100,7 +83,7 @@ const ProfileScreen = () => {
             }
           },
         },
-      }).result;
+      });
     } catch (err) {
       throw err;
     }
@@ -111,25 +94,21 @@ const ProfileScreen = () => {
 
     if (status !== "granted") {
       Alert.alert("Sorry, we need camera roll permissions to make this work!");
-
       return;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-
       aspect: [4, 3],
-
       quality: 1,
     });
 
-    if (!result.canceled) {
+    if (!result.canceled && result.assets && result.assets.length > 0) {
       const { uri } = result.assets[0];
       setProfilePictureFile(uri);
 
       setUserData((prevUserData) => ({
         ...prevUserData,
-
         profilePicture: uri,
       }));
     }
@@ -149,7 +128,6 @@ const ProfileScreen = () => {
 
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Username</Text>
-
         <TextInput
           style={styles.input}
           value={userData.username}
@@ -158,7 +136,6 @@ const ProfileScreen = () => {
         />
 
         <Text style={styles.label}>ID</Text>
-
         <TextInput
           style={styles.input}
           value={userData.id}
@@ -167,7 +144,6 @@ const ProfileScreen = () => {
         />
 
         <Text style={styles.label}>Email</Text>
-
         <TextInput
           style={styles.input}
           value={userData.email}
@@ -190,13 +166,15 @@ const ProfileScreen = () => {
             height={20}
             color="#FF6347"
           />
-
-          <Text style={styles.progressText}>{`${uploadProgress}%`}</Text>
+          <Text style={styles.progressText}>{`${uploadProgress.toFixed(
+            2
+          )}%`}</Text>
         </View>
       )}
     </View>
   );
 };
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,

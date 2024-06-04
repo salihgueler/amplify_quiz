@@ -1,29 +1,37 @@
-import { generateClient } from "aws-amplify/api";
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, FlatList } from "react-native";
 import { Schema } from "../../amplify/data/resource";
+import { generateClient } from "aws-amplify/api";
 
 interface LeaderboardScreenProps {
   username: string;
   points: number;
-  readonly id: string;
-  readonly createdAt: string;
-  readonly updatedAt: string;
+  id: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-const LeaderboardScreen = () => {
+const LeaderboardScreen: React.FC = () => {
   const client = generateClient<Schema>();
-
   const [leaderboardData, setLeaderboardData] = useState<
     LeaderboardScreenProps[]
   >([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    client.models.Leaderboard.list().then(
-      (data) => setLeaderboardData(data.data),
-      (error) => console.error(error)
-    );
-  });
+    const fetchLeaderboardData = async () => {
+      try {
+        const data = await client.models.Leaderboard.list();
+        setLeaderboardData(data.data);
+      } catch (error) {
+        console.error("Failed to fetch leaderboard data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLeaderboardData();
+  }, [client]);
 
   const renderItem = ({ item }: { item: LeaderboardScreenProps }) => (
     <View style={styles.itemContainer}>
@@ -34,13 +42,17 @@ const LeaderboardScreen = () => {
 
   return (
     <View style={styles.container}>
-      <FlatList
-        data={leaderboardData}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.leaderboardContainer}
-        ListEmptyComponent={<Text>No leaderboard data available.</Text>}
-      />
+      {loading ? (
+        <Text>Loading...</Text>
+      ) : (
+        <FlatList
+          data={leaderboardData}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.leaderboardContainer}
+          ListEmptyComponent={<Text>No leaderboard data available.</Text>}
+        />
+      )}
     </View>
   );
 };
@@ -60,11 +72,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: "#ccc",
-  },
-  rank: {
-    width: 30,
-    fontWeight: "bold",
-    color: "#FF6347",
   },
   name: {
     flex: 1,
