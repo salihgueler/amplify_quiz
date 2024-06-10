@@ -22,99 +22,71 @@ const GameLobbyScreen: React.FC<GameLobbyScreenProps> = ({
   const client = generateClient<Schema>();
   const params = route?.params || { selectedCategories: [] };
   const subscriptionsRef = useRef<Array<{ unsubscribe: () => void }>>([]);
-  const [isGeneratingQuestions, setIsGeneratingQuestions] =
-    useState<boolean>(false);
 
   useEffect(() => {
-    if (subscriptionsRef.current.length === 0) {
-      const subscriptions = params.selectedCategories.map((category) =>
-        client.models.GamePool.observeQuery({
+    const joinOrCreateGame = async (category: string) => {
+      try {
+        // Try to find an existing game
+        const existingGames = await client.models.Game.list({
           filter: {
-            category: {
-              eq: category,
-            },
+            category: { eq: category },
+            finished: { eq: false },
           },
-        }).subscribe({
-          next: async ({ items }) => {
-            if (items.length !== 0) {
-              const game = items[0];
-              if (
-                game.queue.length !== 0 &&
-                !game.queue.includes(user.userId)
-              ) {
-                const updatedQueue = [...game.queue, user.userId];
+        });
 
-                try {
-                  await client.models.GamePool.update({
-                    id: game.id,
-                    queue: updatedQueue,
-                  });
-                } catch (error) {
-                  setInformationText(
-                    "An error occurred while updating the game queue."
-                  );
-                  console.error(error);
-                  return;
-                }
-              }
-              if (game.queue.some((playerId) => playerId !== user.userId)) {
-                setInformationText("Game Found, generating questions");
-                if (!isGeneratingQuestions) {
-                  setIsGeneratingQuestions(true);
-                  try {
-                    const response = await client.queries.askBedrock({
-                      category,
-                    });
-                    const res = JSON.parse(response.data?.body!);
-                    const content = res.content[0].text;
-                    navigation.replace("QuestionScreen", { content });
-                  } catch (error) {
-                    setInformationText(
-                      "An error occurred while generating questions."
-                    );
-                    console.error(error);
-                  }
-                }
-              }
-            } else {
-              setInformationText("Game created, waiting for other players.");
-              try {
-                await client.models.GamePool.create({
-                  category,
-                  queue: [user.userId],
-                });
-              } catch (error) {
-                setInformationText(
-                  "An error occurred while creating the game."
-                );
-                console.error(error);
-              }
-            }
-          },
-          error: (error) => {
-            setInformationText("An error occurred while looking for a game.");
-            console.error(error);
-          },
-        })
-      );
+        if (existingGames.data.length > 0) {
+          setInformationText("Game Found, generating questions");
 
-      subscriptionsRef.current = subscriptions;
-    }
+          const game = existingGames.data[0];
+          // Add current player to the game
+          await client.models.Player.create({
+            username: user.username,
+            gameId: game.id,
+          });
 
-    // Cleanup subscriptions on component unmount
-    return () => {
-      subscriptionsRef.current.forEach((subscription) =>
-        subscription.unsubscribe()
-      );
-      subscriptionsRef.current = [];
+          navigation.replace("QuestionScreen", { content: game.questions });
+        } else {
+          setInformationText("Game Found, generating questions");
+          // Create a new game and generate questions
+          const response = await client.queries.askBedrock({ category });
+          const res = JSON.parse(response.data?.body!);
+          const questions = res.content[0].text;
+
+          const game = await client.models.Game.create({
+            category,
+            questions,
+            finished: false,
+          });
+
+          // Add current player to the game
+          await client.models.Player.create({
+            username: user.username,
+            gameId: game.data?.id,
+          });
+
+          navigation.replace("QuestionScreen", {
+            content: game.data?.questions ?? "{}",
+          });
+        }
+      } catch (error) {
+        setInformationText("An error occurred while looking for a game.");
+        console.error(error);
+      }
     };
-  }, [
-    client,
-    navigation,
-    params.selectedCategories,
-    user.userId,
-    isGeneratingQuestions,
-  ]);
+
+    if (subscriptionsRef.current.length === 0) {
+      const categories = params.selectedCategories;
+      categories.forEach((category) => joinOrCreateGame(category));
+
+      // Cleanup subscriptions on component unmount
+      return () => {
+        subscriptionsRef.current.forEach((subscription) =>
+          subscription.unsubscribe()
+        );
+        subscriptionsRef.current = [];
+      };
+    }
+  }, [client, navigation, params.selectedCategories, user.username]);
 
   return (
     <View style={styles.container}>
