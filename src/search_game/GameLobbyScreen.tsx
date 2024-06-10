@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import { RootStackParamList } from "../../App";
 import { Schema } from "../../amplify/data/resource";
@@ -20,45 +20,72 @@ const GameLobbyScreen: React.FC<GameLobbyScreenProps> = ({
   );
   const { user } = useAuthenticator((context) => [context.user]);
   const client = generateClient<Schema>();
-
   const params = route?.params || { selectedCategories: [] };
+  const subscriptionsRef = useRef<Array<{ unsubscribe: () => void }>>([]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        for (const category of params.selectedCategories) {
-          const games = await client.models.GamePool.list({
-            filter: {
-              category: {
-                eq: category,
-              },
+    if (subscriptionsRef.current.length === 0) {
+      const subscriptions = params.selectedCategories.map((category) =>
+        client.models.GamePool.observeQuery({
+          filter: {
+            category: {
+              eq: category,
             },
-          });
+          },
+        }).subscribe({
+          next: async ({ items }) => {
+            if (items.length !== 0) {
+              const game = items[0];
+              if (game.queue.some((playerId) => playerId !== user.userId)) {
+                setInformationText("Game Found, generating questions");
+                try {
+                  const response = await client.queries.askBedrock({
+                    category,
+                  });
+                  const res = JSON.parse(response.data?.body!);
+                  const content = res.content[0].text;
+                  navigation.replace("QuestionScreen", { content });
+                } catch (error) {
+                  setInformationText(
+                    "An error occurred while generating questions."
+                  );
+                  console.error(error);
+                }
+              } else {
+                setInformationText("Game created, waiting for other players.");
+              }
+            } else {
+              setInformationText("Game created, waiting for other players.");
+              try {
+                await client.models.GamePool.create({
+                  category,
+                  queue: [user.userId],
+                });
+              } catch (error) {
+                setInformationText(
+                  "An error occurred while creating the game."
+                );
+                console.error(error);
+              }
+            }
+          },
+          error: (error) => {
+            setInformationText("An error occurred while looking for a game.");
+            console.error(error);
+          },
+        })
+      );
 
-          if (games.data.length !== 0) {
-            setInformationText("Game Found, generating questions");
-            const response = await client.queries.askBedrock({
-              category,
-            });
-            const res = JSON.parse(response.data?.body!);
-            const content: string = res.content[0].text;
-            navigation.replace("QuestionScreen", { content });
-            break;
-          } else {
-            setInformationText("Game created, waiting for other players.");
-            await client.models.GamePool.create({
-              category,
-              queue: [user.userId],
-            });
-          }
-        }
-      } catch (error) {
-        setInformationText("An error occurred while looking for a game.");
-        console.error(error);
-      }
+      subscriptionsRef.current = subscriptions;
+    }
+
+    // Cleanup subscriptions on component unmount
+    return () => {
+      subscriptionsRef.current.forEach((subscription) =>
+        subscription.unsubscribe()
+      );
+      subscriptionsRef.current = [];
     };
-
-    fetchData();
   }, [client, navigation, params.selectedCategories, user.userId]);
 
   return (
