@@ -22,6 +22,8 @@ const GameLobbyScreen: React.FC<GameLobbyScreenProps> = ({
   const client = generateClient<Schema>();
   const params = route?.params || { selectedCategories: [] };
   const subscriptionsRef = useRef<Array<{ unsubscribe: () => void }>>([]);
+  const [isGeneratingQuestions, setIsGeneratingQuestions] =
+    useState<boolean>(false);
 
   useEffect(() => {
     if (subscriptionsRef.current.length === 0) {
@@ -57,18 +59,21 @@ const GameLobbyScreen: React.FC<GameLobbyScreenProps> = ({
               }
               if (game.queue.some((playerId) => playerId !== user.userId)) {
                 setInformationText("Game Found, generating questions");
-                try {
-                  const response = await client.queries.askBedrock({
-                    category,
-                  });
-                  const res = JSON.parse(response.data?.body!);
-                  const content = res.content[0].text;
-                  navigation.replace("QuestionScreen", { content });
-                } catch (error) {
-                  setInformationText(
-                    "An error occurred while generating questions."
-                  );
-                  console.error(error);
+                if (!isGeneratingQuestions) {
+                  setIsGeneratingQuestions(true);
+                  try {
+                    const response = await client.queries.askBedrock({
+                      category,
+                    });
+                    const res = JSON.parse(response.data?.body!);
+                    const content = res.content[0].text;
+                    navigation.replace("QuestionScreen", { content });
+                  } catch (error) {
+                    setInformationText(
+                      "An error occurred while generating questions."
+                    );
+                    console.error(error);
+                  }
                 }
               }
             } else {
@@ -103,7 +108,13 @@ const GameLobbyScreen: React.FC<GameLobbyScreenProps> = ({
       );
       subscriptionsRef.current = [];
     };
-  }, [client, navigation, params.selectedCategories, user.userId]);
+  }, [
+    client,
+    navigation,
+    params.selectedCategories,
+    user.userId,
+    isGeneratingQuestions,
+  ]);
 
   return (
     <View style={styles.container}>
