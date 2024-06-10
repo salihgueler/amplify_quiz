@@ -22,7 +22,7 @@ export type RootStackParamList = {
   HomeScreen: undefined;
   QuizCategoryScreen: undefined;
   GameLobbyScreen: { selectedCategories: string[] };
-  QuestionScreen: { content: string };
+  QuestionScreen: { content: string; gameId: string };
   ResultScreen: { score: number };
 };
 

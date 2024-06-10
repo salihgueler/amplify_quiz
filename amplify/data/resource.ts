@@ -21,9 +21,11 @@ const schema = a
       .model({
         id: a.string().required(),
         category: a.string().required(),
-        questions: a.string().required(),
+        questions: a.string().required(), // JSON string of questions
+        currentQuestionIndex: a.integer().default(0).required(), // Shared index
         players: a.hasMany("Player", "gameId"),
         finished: a.boolean().required(),
+        ready: a.boolean().default(false), // Flag to indicate game is ready to start
       })
       .authorization((allow) => [allow.authenticated()]),
 

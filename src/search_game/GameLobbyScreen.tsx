@@ -26,7 +26,6 @@ const GameLobbyScreen: React.FC<GameLobbyScreenProps> = ({
   useEffect(() => {
     const joinOrCreateGame = async (category: string) => {
       try {
-        // Try to find an existing game
         const existingGames = await client.models.Game.list({
           filter: {
             category: { eq: category },
@@ -34,58 +33,83 @@ const GameLobbyScreen: React.FC<GameLobbyScreenProps> = ({
           },
         });
 
-        if (existingGames.data.length > 0) {
-          setInformationText("Game Found, generating questions");
+        const game =
+          existingGames.data.length > 0
+            ? existingGames.data[0]
+            : (
+                await client.models.Game.create({
+                  category,
+                  questions: "[]",
+                  currentQuestionIndex: 0,
+                  finished: false,
+                  ready: false,
+                })
+              ).data;
 
-          const game = existingGames.data[0];
-          // Add current player to the game
-          await client.models.Player.create({
-            username: user.username,
-            gameId: game.id,
-          });
+        // Add current player to the game
+        await client.models.Player.create({
+          username: user.username,
+          gameId: game!.id,
+        });
 
-          navigation.replace("QuestionScreen", { content: game.questions });
-        } else {
-          setInformationText("Game Found, generating questions");
-          // Create a new game and generate questions
-          const response = await client.queries.askBedrock({ category });
-          const res = JSON.parse(response.data?.body!);
-          const questions = res.content[0].text;
+        // Subscribe to game updates to navigate when ready
+        const subscription = client.models.Game.observeQuery({
+          filter: { id: { eq: game!.id } },
+        }).subscribe({
+          next: async ({ items }) => {
+            if (items.length > 0) {
+              const updatedGame = items[0];
+              // Check if game is ready to start
+              if (updatedGame.ready) {
+                setInformationText("Game ready, starting...");
+                subscription.unsubscribe();
+                navigation.replace("QuestionScreen", {
+                  content: updatedGame.questions,
+                  gameId: updatedGame.id,
+                });
+                return;
+              }
 
-          const game = await client.models.Game.create({
-            category,
-            questions,
-            finished: false,
-          });
+              // If there are two players and the game is not ready, generate questions and set ready flag
+              const players = await client.models.Player.list({
+                filter: { gameId: { eq: updatedGame.id } },
+              });
+              if (players.data.length >= 2 && !updatedGame.ready) {
+                setInformationText("Generating questions, please wait");
+                const response = await client.queries.askBedrock({ category });
+                const res = JSON.parse(response.data?.body!);
+                const questions = res.content[0].text;
+                await client.models.Game.update({
+                  id: updatedGame.id,
+                  questions,
+                  ready: true,
+                });
+              }
+            }
+          },
+          error: (error) => {
+            console.error("Error subscribing to game updates:", error);
+            setInformationText("An error occurred while looking for a game.");
+          },
+        });
 
-          // Add current player to the game
-          await client.models.Player.create({
-            username: user.username,
-            gameId: game.data?.id,
-          });
-
-          navigation.replace("QuestionScreen", {
-            content: game.data?.questions ?? "{}",
-          });
-        }
+        subscriptionsRef.current.push(subscription);
       } catch (error) {
+        console.error("Error joining or creating a game:", error);
         setInformationText("An error occurred while looking for a game.");
-        console.error(error);
       }
     };
 
-    if (subscriptionsRef.current.length === 0) {
-      const categories = params.selectedCategories;
-      categories.forEach((category) => joinOrCreateGame(category));
+    const categories = params.selectedCategories;
+    categories.forEach((category) => joinOrCreateGame(category));
 
-      // Cleanup subscriptions on component unmount
-      return () => {
-        subscriptionsRef.current.forEach((subscription) =>
-          subscription.unsubscribe()
-        );
-        subscriptionsRef.current = [];
-      };
-    }
+    // Cleanup subscriptions on component unmount
+    return () => {
+      subscriptionsRef.current.forEach((subscription) =>
+        subscription.unsubscribe()
+      );
+      subscriptionsRef.current = [];
+    };
   }, [client, navigation, params.selectedCategories, user.username]);
 
   return (

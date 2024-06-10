@@ -1,10 +1,16 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+} from "react-native";
 import { Schema } from "../../amplify/data/resource";
 import { generateClient } from "aws-amplify/api";
-import { fetchUserAttributes } from "aws-amplify/auth";
 import { RootStackParamList } from "../../App";
 import { NativeStackScreenProps } from "react-native-screens/lib/typescript/native-stack";
+import { fetchUserAttributes } from "aws-amplify/auth";
 
 export interface QuestionData {
   questionText: string;
@@ -22,22 +28,72 @@ const QuestionScreen: React.FC<QuestionScreenProps> = ({
   route,
 }) => {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [questions, setQuestions] = useState<QuestionData[]>([]);
   const [score, setScore] = useState(0);
-  const params = route.params || { content: "" };
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const client = generateClient<Schema>();
+  const params = route.params || { content: "", gameId: "" };
 
-  const lines = params.content.split("\n");
-  const jsonStart = lines.findIndex((line: string) =>
-    line.trim().startsWith("[")
-  );
-  const jsonString = lines.slice(jsonStart).join("\n").trim();
-  const questions: QuestionData[] = JSON.parse(jsonString).map(
-    (questionObj: any) => ({
-      questionText: questionObj.question,
-      options: questionObj.options,
-      correctAnswer: questionObj.correctAnswer,
-    })
-  );
+  useEffect(() => {
+    console.log("useEffect triggered");
+    console.log("params.content:", params.content);
+    console.log("params.gameId:", params.gameId);
+
+    const lines = params.content.split("\n");
+    const jsonStart = lines.findIndex((line: string) =>
+      line.trim().startsWith("[")
+    );
+    console.log("jsonStart:", jsonStart);
+
+    if (jsonStart !== -1) {
+      const jsonString = lines.slice(jsonStart).join("\n").trim();
+      console.log("jsonString:", jsonString);
+
+      try {
+        const parsedQuestions: QuestionData[] = JSON.parse(jsonString).map(
+          (questionObj: any) => ({
+            questionText: questionObj.question,
+            options: questionObj.options,
+            correctAnswer: questionObj.correctAnswer,
+          })
+        );
+        setQuestions(parsedQuestions);
+      } catch (error) {
+        console.error("Error parsing JSON string:", error);
+      }
+    } else {
+      console.error("JSON start not found in params.content");
+    }
+
+    // Subscribe to game updates
+    const subscription = client.models.Game.observeQuery({
+      filter: { id: { eq: params.gameId } },
+    }).subscribe({
+      next: ({ items }) => {
+        if (items.length > 0) {
+          const gameData = items[0];
+          console.log("Game data received:", gameData);
+          setCurrentQuestionIndex(gameData.currentQuestionIndex);
+        }
+      },
+      error: (error) => {
+        console.error("Error subscribing to game updates:", error);
+      },
+    });
+
+    return () => {
+      console.log("Cleaning up subscription");
+      subscription.unsubscribe();
+    };
+  }, [client, params.content, params.gameId]);
+
+  if (questions.length === 0) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
 
   const currentQuestion = questions[currentQuestionIndex];
 
@@ -63,21 +119,31 @@ const QuestionScreen: React.FC<QuestionScreenProps> = ({
     ));
   };
 
-  const handleOptionSelect = (optionIndex: number) => {
+  const handleOptionSelect = async (optionIndex: number) => {
     setSelectedOption(optionIndex);
     const isCorrect =
       currentQuestion.options[optionIndex] === currentQuestion.correctAnswer;
+    let newScore = score;
     if (isCorrect) {
-      setScore(score + 10);
-    }
-  };
-
-  const handleNextQuestion = () => {
-    setSelectedOption(null);
-    if (currentQuestionIndex === questions.length - 1) {
-      navigation.navigate("ResultScreen", { score });
+      newScore += 10;
     } else {
-      setCurrentQuestionIndex((prevIndex) => prevIndex + 1);
+      newScore -= 10;
+    }
+
+    setScore(newScore);
+
+    if (currentQuestionIndex + 1 === questions.length) {
+      await client.models.Game.update({
+        id: params.gameId,
+        finished: true,
+      });
+      navigation.navigate("ResultScreen", { score: newScore });
+    } else {
+      // Update the game with the next question index
+      await client.models.Game.update({
+        id: params.gameId,
+        currentQuestionIndex: currentQuestionIndex + 1,
+      });
     }
   };
 
@@ -88,7 +154,7 @@ const QuestionScreen: React.FC<QuestionScreenProps> = ({
       {selectedOption !== null && (
         <TouchableOpacity
           style={styles.nextButton}
-          onPress={handleNextQuestion}
+          onPress={() => handleOptionSelect(selectedOption)}
         >
           <Text style={styles.nextButtonText}>Next Question</Text>
         </TouchableOpacity>
