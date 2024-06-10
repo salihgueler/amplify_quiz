@@ -36,6 +36,25 @@ const GameLobbyScreen: React.FC<GameLobbyScreenProps> = ({
           next: async ({ items }) => {
             if (items.length !== 0) {
               const game = items[0];
+              if (
+                game.queue.length !== 0 &&
+                !game.queue.includes(user.userId)
+              ) {
+                const updatedQueue = [...game.queue, user.userId];
+
+                try {
+                  await client.models.GamePool.update({
+                    id: game.id,
+                    queue: updatedQueue,
+                  });
+                } catch (error) {
+                  setInformationText(
+                    "An error occurred while updating the game queue."
+                  );
+                  console.error(error);
+                  return;
+                }
+              }
               if (game.queue.some((playerId) => playerId !== user.userId)) {
                 setInformationText("Game Found, generating questions");
                 try {
@@ -51,8 +70,6 @@ const GameLobbyScreen: React.FC<GameLobbyScreenProps> = ({
                   );
                   console.error(error);
                 }
-              } else {
-                setInformationText("Game created, waiting for other players.");
               }
             } else {
               setInformationText("Game created, waiting for other players.");
