@@ -35,19 +35,18 @@ const QuestionScreen: React.FC<QuestionScreenProps> = ({
   const params = route.params || { content: "", gameId: "" };
 
   useEffect(() => {
-    console.log("useEffect triggered");
-    console.log("params.content:", params.content);
-    console.log("params.gameId:", params.gameId);
-
     const lines = params.content.split("\n");
     const jsonStart = lines.findIndex((line: string) =>
       line.trim().startsWith("[")
     );
-    console.log("jsonStart:", jsonStart);
-
+    const jsonEnd = lines.findLastIndex((line: string) =>
+      line.trim().endsWith("]")
+    );
     if (jsonStart !== -1) {
-      const jsonString = lines.slice(jsonStart).join("\n").trim();
-      console.log("jsonString:", jsonString);
+      const jsonString = lines
+        .slice(jsonStart, jsonEnd + 1)
+        .join("\n")
+        .trim();
 
       try {
         const parsedQuestions: QuestionData[] = JSON.parse(jsonString).map(
@@ -72,8 +71,11 @@ const QuestionScreen: React.FC<QuestionScreenProps> = ({
       next: ({ items }) => {
         if (items.length > 0) {
           const gameData = items[0];
-          console.log("Game data received:", gameData);
-          setCurrentQuestionIndex(gameData.currentQuestionIndex);
+          if (gameData.finished) {
+            navigation.navigate("ResultScreen", { score: score });
+          } else {
+            setCurrentQuestionIndex(gameData.currentQuestionIndex);
+          }
         }
       },
       error: (error) => {
@@ -85,7 +87,7 @@ const QuestionScreen: React.FC<QuestionScreenProps> = ({
       console.log("Cleaning up subscription");
       subscription.unsubscribe();
     };
-  }, [client, params.content, params.gameId]);
+  }, []); // The empty array ensures useEffect is called only once
 
   if (questions.length === 0) {
     return (
@@ -105,7 +107,7 @@ const QuestionScreen: React.FC<QuestionScreenProps> = ({
           styles.optionButton,
           selectedOption === index ? styles.selectedOption : null,
         ]}
-        onPress={() => handleOptionSelect(index)}
+        onPress={() => setSelectedOption(index)}
       >
         <Text
           style={[
@@ -120,7 +122,6 @@ const QuestionScreen: React.FC<QuestionScreenProps> = ({
   };
 
   const handleOptionSelect = async (optionIndex: number) => {
-    setSelectedOption(optionIndex);
     const isCorrect =
       currentQuestion.options[optionIndex] === currentQuestion.correctAnswer;
     let newScore = score;
@@ -145,6 +146,7 @@ const QuestionScreen: React.FC<QuestionScreenProps> = ({
         currentQuestionIndex: currentQuestionIndex + 1,
       });
     }
+    setSelectedOption(null);
   };
 
   return (
