@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet } from "react-native";
+import { StyleSheet, TouchableOpacity } from "react-native";
 import { Amplify } from "aws-amplify";
 import { Authenticator, useAuthenticator } from "@aws-amplify/ui-react-native";
 import outputs from "./amplify_outputs.json";
@@ -10,13 +10,15 @@ import {
 } from "@react-navigation/stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
-import { TouchableOpacity } from "react-native-gesture-handler";
-import QuizCategoryScreen from "./src/category_selection/QuizCategoryScreen";
-import QuestionScreen, { ResultScreen } from "./src/quiz/QuestionScreen";
-import GameLobbyScreen from "./src/search_game/GameLobbyScreen";
-import ProfileScreen from "./src/profile/ProfileScreen";
-import LeaderboardScreen from "./src/leaderboard/LeaderboardScreen";
-import SearchGameScreen from "./src/search_game/SearchGameScreen";
+import { Provider } from "react-redux";
+import { store } from "./src/redux/store";
+import ResultScreen from "./src/components/ResultScreen";
+import LeaderboardScreen from "./src/components/LeaderboardScreen";
+import ProfileScreen from "./src/components/ProfileScreen";
+import QuizCategoryScreen from "./src/components/QuizCategoryScreen";
+import QuestionScreen from "./src/components/QuestionScreen";
+import GameLobbyScreen from "./src/components/GameLobbyScreen";
+import SearchGameScreen from "./src/components/SearchGameScreen";
 
 export type RootStackParamList = {
   HomeScreen: undefined;
@@ -89,81 +91,53 @@ const HomeScreen: React.FC<ScreenProps<"HomeScreen">> = ({ navigation }) => (
 
 const App: React.FC = () => {
   return (
-    <Authenticator.Provider>
-      <Authenticator>
-        <NavigationContainer>
-          <Stack.Navigator initialRouteName="HomeScreen">
-            <Stack.Screen
-              name="HomeScreen"
-              component={HomeScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="GameLobbyScreen"
-              component={GameLobbyScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="QuizCategoryScreen"
-              component={QuizCategoryScreen}
-              options={{ title: "Quiz Categories" }}
-            />
-            <Stack.Screen
-              name="QuestionScreen"
-              component={QuestionScreen}
-              options={{
-                title: "Quiz Question",
-                headerLeft: () => null,
-              }}
-            />
-            <Stack.Screen
-              name="ResultScreen"
-              component={ResultScreen}
-              options={{
-                title: "Results",
-                headerLeft: () => null,
-              }}
-            />
-          </Stack.Navigator>
-        </NavigationContainer>
-      </Authenticator>
-    </Authenticator.Provider>
+    <Provider store={store}>
+      <Authenticator.Provider>
+        <Authenticator>
+          <NavigationContainer>
+            <Stack.Navigator initialRouteName="HomeScreen">
+              <Stack.Screen
+                name="HomeScreen"
+                component={HomeScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="GameLobbyScreen"
+                component={GameLobbyScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="QuizCategoryScreen"
+                component={QuizCategoryScreen}
+                options={{ title: "Quiz Categories" }}
+              />
+              <Stack.Screen
+                name="QuestionScreen"
+                component={QuestionScreen}
+                options={{
+                  title: "Quiz Question",
+                  headerLeft: () => null,
+                }}
+              />
+              <Stack.Screen
+                name="ResultScreen"
+                component={ResultScreen}
+                options={{
+                  title: "Results",
+                  headerLeft: () => null,
+                }}
+              />
+            </Stack.Navigator>
+          </NavigationContainer>
+        </Authenticator>
+      </Authenticator.Provider>
+    </Provider>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
   signOutButton: {
     alignSelf: "flex-end",
-  },
-  welcomeText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333333",
-    marginBottom: 20,
-    textAlign: "center",
-    paddingHorizontal: 20,
-  },
-  searchButton: {
-    backgroundColor: "#FF6347",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 25,
-  },
-  searchButtonText: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  loadingText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333333",
-    marginTop: 20,
   },
 });
 
