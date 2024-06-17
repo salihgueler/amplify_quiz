@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+// src/components/QuizCategoryScreen.tsx
+import React from "react";
 import {
   View,
   Text,
@@ -6,13 +7,19 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
+import { useSelector, useDispatch } from "react-redux";
+import { RootState, AppDispatch } from "../redux/store";
+import { toggleCategory } from "../redux/slices/selectCategorySlice";
 import { RootStackParamList } from "../../App";
 import { NativeStackScreenProps } from "react-native-screens/lib/typescript/native-stack";
 
 type Props = NativeStackScreenProps<RootStackParamList, "QuizCategoryScreen">;
 
 const QuizCategoryScreen: React.FC<Props> = ({ navigation }) => {
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const dispatch: AppDispatch = useDispatch();
+  const selectedCategories = useSelector(
+    (state: RootState) => state.quiz.selectedCategories
+  );
 
   const categories: string[] = [
     "History of QuizKnock",
@@ -28,14 +35,6 @@ const QuizCategoryScreen: React.FC<Props> = ({ navigation }) => {
     "General Knowledge",
   ];
 
-  const toggleCategory = (category: string) => {
-    setSelectedCategories((prevSelectedCategories) =>
-      prevSelectedCategories.includes(category)
-        ? prevSelectedCategories.filter((c) => c !== category)
-        : [...prevSelectedCategories, category]
-    );
-  };
-
   const renderCategories = () => {
     return categories.map((category) => (
       <TouchableOpacity
@@ -45,7 +44,7 @@ const QuizCategoryScreen: React.FC<Props> = ({ navigation }) => {
           selectedCategories.includes(category) &&
             styles.selectedCategoryButton,
         ]}
-        onPress={() => toggleCategory(category)}
+        onPress={() => dispatch(toggleCategory(category))}
       >
         <Text
           style={[

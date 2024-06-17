@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,16 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState, AppDispatch } from "../redux/store";
+import {
+  setQuestions,
+  setScore,
+  setCurrentQuestionIndex,
+  setSelectedOption,
+  incrementScore,
+  decrementScore,
+} from "../redux/slices/questionSlice";
 import { Schema } from "../../amplify/data/resource";
 import { generateClient } from "aws-amplify/api";
 import { RootStackParamList } from "../../App";
@@ -27,10 +37,10 @@ const QuestionScreen: React.FC<QuestionScreenProps> = ({
   navigation,
   route,
 }) => {
-  const [selectedOption, setSelectedOption] = useState<number | null>(null);
-  const [questions, setQuestions] = useState<QuestionData[]>([]);
-  const [score, setScore] = useState(0);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const dispatch: AppDispatch = useDispatch();
+  const { questions, score, currentQuestionIndex, selectedOption } =
+    useSelector((state: RootState) => state.question);
+
   const client = generateClient<Schema>();
   const params = route.params || { content: "", gameId: "" };
 
@@ -56,7 +66,7 @@ const QuestionScreen: React.FC<QuestionScreenProps> = ({
             correctAnswer: questionObj.correctAnswer,
           })
         );
-        setQuestions(parsedQuestions);
+        dispatch(setQuestions(parsedQuestions));
       } catch (error) {
         console.error("Error parsing JSON string:", error);
       }
@@ -74,7 +84,7 @@ const QuestionScreen: React.FC<QuestionScreenProps> = ({
           if (gameData.finished) {
             navigation.navigate("ResultScreen", { score: score });
           } else {
-            setCurrentQuestionIndex(gameData.currentQuestionIndex);
+            dispatch(setCurrentQuestionIndex(gameData.currentQuestionIndex));
           }
         }
       },
@@ -105,7 +115,7 @@ const QuestionScreen: React.FC<QuestionScreenProps> = ({
           styles.optionButton,
           selectedOption === index ? styles.selectedOption : null,
         ]}
-        onPress={() => setSelectedOption(index)}
+        onPress={() => dispatch(setSelectedOption(index))}
       >
         <Text
           style={[
@@ -122,16 +132,11 @@ const QuestionScreen: React.FC<QuestionScreenProps> = ({
   const handleOptionSelect = async (optionIndex: number) => {
     const isCorrect =
       currentQuestion.options[optionIndex] === currentQuestion.correctAnswer;
-    console.log(isCorrect);
-    console.log(currentQuestion.correctAnswer);
-    let newScore = score;
     if (isCorrect) {
-      newScore += 10;
+      dispatch(incrementScore());
     } else {
-      newScore -= 10;
+      dispatch(decrementScore());
     }
-
-    setScore(newScore);
 
     if (currentQuestionIndex + 1 === questions.length) {
       await client.models.Game.update({
@@ -145,8 +150,9 @@ const QuestionScreen: React.FC<QuestionScreenProps> = ({
         id: params.gameId,
         currentQuestionIndex: currentQuestionIndex + 1,
       });
+      dispatch(setCurrentQuestionIndex(currentQuestionIndex + 1));
     }
-    setSelectedOption(null);
+    dispatch(setSelectedOption(null));
   };
 
   return (
@@ -161,49 +167,6 @@ const QuestionScreen: React.FC<QuestionScreenProps> = ({
           <Text style={styles.nextButtonText}>Next Question</Text>
         </TouchableOpacity>
       )}
-    </View>
-  );
-};
-
-type ResultScreenProps = NativeStackScreenProps<
-  RootStackParamList,
-  "ResultScreen"
->;
-
-export const ResultScreen: React.FC<ResultScreenProps> = ({
-  navigation,
-  route,
-}) => {
-  const [score, setScore] = useState(0);
-  useEffect(() => {
-    setScore(route.params?.score);
-  }, []);
-
-  const client = generateClient<Schema>();
-  return (
-    <View style={styles.container}>
-      <Text style={styles.resultText}>Your score: {score}</Text>
-      <TouchableOpacity
-        style={styles.searchButton}
-        onPress={async () => {
-          const attributes = await fetchUserAttributes();
-          const currentItemList = await client.models.Leaderboard.list({
-            filter: {
-              username: {
-                eq: attributes.preferred_username,
-              },
-            },
-          });
-          const currentItem = currentItemList.data[0];
-          await client.models.Leaderboard.update({
-            id: currentItem.id,
-            points: currentItem.points + route.params?.score,
-          });
-          navigation.replace("HomeScreen");
-        }}
-      >
-        <Text style={styles.searchButtonText}>Save Result</Text>
-      </TouchableOpacity>
     </View>
   );
 };
@@ -256,22 +219,6 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   nextButtonText: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  resultText: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#333333",
-  },
-  searchButton: {
-    backgroundColor: "#FF6347",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 25,
-  },
-  searchButtonText: {
     color: "#ffffff",
     fontSize: 16,
     fontWeight: "bold",

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import {
   View,
   Text,
@@ -15,6 +15,13 @@ import { Buffer } from "buffer";
 import * as Progress from "react-native-progress";
 import { getUrl, uploadData } from "aws-amplify/storage";
 import { fetchUserAttributes } from "aws-amplify/auth";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState, AppDispatch } from "../redux/store";
+import {
+  setUserData,
+  setProfilePictureFile,
+  setUploadProgress,
+} from "../redux/slices/profileSlice";
 
 interface UserData {
   profilePicture: string;
@@ -24,54 +31,37 @@ interface UserData {
 }
 
 const ProfileScreen: React.FC = () => {
-  const [userData, setUserData] = useState<UserData>({
-    profilePicture: "https://picsum.photos/200",
-    username: "",
-    id: "",
-    email: "",
-  });
-
-  const [profilePictureFile, setProfilePictureFile] = useState<string>(
-    "https://picsum.photos/200"
+  const dispatch: AppDispatch = useDispatch();
+  const { userData, uploadProgress } = useSelector(
+    (state: RootState) => state.profile
   );
-
-  const [uploadProgress, setUploadProgress] = useState<number>(0);
   const { user } = useAuthenticator((context) => [context.user]);
 
   useEffect(() => {
     fetchUserAttributes().then((attributes) => {
-      setUserData((prevUserData) => ({
-        profilePicture: prevUserData.profilePicture,
-        username: attributes?.preferred_username ?? "",
-        id: user.userId,
-        email: user.signInDetails?.loginId ?? "",
-      }));
+      dispatch(
+        setUserData({
+          ...userData,
+          username: attributes?.preferred_username ?? "",
+          id: user.userId,
+          email: user.signInDetails?.loginId ?? "",
+        })
+      );
     });
   }, [user]);
 
   useEffect(() => {
-    getUrl({ path: `profile-pictures/${user.userId}.png` })
-      .then((result) => {
-        const profileUrl = result.url.toString().trim();
-        setProfilePictureFile(profileUrl);
-        setUserData((prevUserData) => ({
-          username: prevUserData.username,
-          id: prevUserData.id,
-          email: prevUserData.email,
-          profilePicture: profileUrl,
-        }));
-      })
-      .catch((error) => {
-        console.error(error);
-        setProfilePictureFile("https://picsum.photos/200");
-      });
+    getUrl({ path: `profile-pictures/${user.userId}.png` }).then((result) => {
+      const profileUrl = result.url.toString();
+      dispatch(setProfilePictureFile(profileUrl));
+    });
   }, []);
 
   const handleUpdateProfile = async () => {
-    setUploadProgress(0);
+    dispatch(setUploadProgress(0));
     try {
       const fileContent = await FileSystem.readAsStringAsync(
-        profilePictureFile,
+        userData.profilePicture,
         {
           encoding: FileSystem.EncodingType.Base64,
         }
@@ -86,7 +76,9 @@ const ProfileScreen: React.FC = () => {
           contentType: "image/png",
           onProgress: ({ transferredBytes, totalBytes }) => {
             if (totalBytes) {
-              setUploadProgress((transferredBytes / totalBytes) * 100);
+              dispatch(
+                setUploadProgress((transferredBytes / totalBytes) * 100)
+              );
             }
           },
         },
@@ -112,12 +104,7 @@ const ProfileScreen: React.FC = () => {
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
       const { uri } = result.assets[0];
-      setProfilePictureFile(uri);
-
-      setUserData((prevUserData) => ({
-        ...prevUserData,
-        profilePicture: uri,
-      }));
+      dispatch(setProfilePictureFile(uri));
     }
   };
 
@@ -138,7 +125,9 @@ const ProfileScreen: React.FC = () => {
         <TextInput
           style={styles.input}
           value={userData.username}
-          onChangeText={(text) => setUserData({ ...userData, username: text })}
+          onChangeText={(text) =>
+            dispatch(setUserData({ ...userData, username: text }))
+          }
           placeholder="Enter your username"
         />
 
@@ -154,7 +143,9 @@ const ProfileScreen: React.FC = () => {
         <TextInput
           style={styles.input}
           value={userData.email}
-          onChangeText={(text) => setUserData({ ...userData, email: text })}
+          onChangeText={(text) =>
+            dispatch(setUserData({ ...userData, email: text }))
+          }
           placeholder="Enter your email"
         />
       </View>

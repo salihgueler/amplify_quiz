@@ -1,5 +1,8 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState, AppDispatch } from "../redux/store";
+import { setInformationText, setLoading } from "../redux/slices/gameLobbySlice";
 import { RootStackParamList } from "../../App";
 import { Schema } from "../../amplify/data/resource";
 import { useAuthenticator } from "@aws-amplify/ui-react-native";
@@ -15,8 +18,9 @@ const GameLobbyScreen: React.FC<GameLobbyScreenProps> = ({
   navigation,
   route,
 }) => {
-  const [informationText, setInformationText] = useState<string>(
-    "Looking for a game..."
+  const dispatch: AppDispatch = useDispatch();
+  const { informationText, loading } = useSelector(
+    (state: RootState) => state.gameLobby
   );
   const { user } = useAuthenticator((context) => [context.user]);
   const client = generateClient<Schema>();
@@ -61,7 +65,7 @@ const GameLobbyScreen: React.FC<GameLobbyScreenProps> = ({
               const updatedGame = items[0];
               // Check if game is ready to start
               if (updatedGame.ready) {
-                setInformationText("Game ready, starting...");
+                dispatch(setInformationText("Game ready, starting..."));
                 subscription.unsubscribe();
                 navigation.replace("QuestionScreen", {
                   content: updatedGame.questions,
@@ -75,7 +79,9 @@ const GameLobbyScreen: React.FC<GameLobbyScreenProps> = ({
                 filter: { gameId: { eq: updatedGame.id } },
               });
               if (players.data.length >= 2 && !updatedGame.ready) {
-                setInformationText("Generating questions, please wait");
+                dispatch(
+                  setInformationText("Generating questions, please wait")
+                );
                 const response = await client.queries.askBedrock({ category });
                 const res = JSON.parse(response.data?.body!);
                 const questions = res.content[0].text;
@@ -89,14 +95,18 @@ const GameLobbyScreen: React.FC<GameLobbyScreenProps> = ({
           },
           error: (error) => {
             console.error("Error subscribing to game updates:", error);
-            setInformationText("An error occurred while looking for a game.");
+            dispatch(
+              setInformationText("An error occurred while looking for a game.")
+            );
           },
         });
 
         subscriptionsRef.current.push(subscription);
       } catch (error) {
         console.error("Error joining or creating a game:", error);
-        setInformationText("An error occurred while looking for a game.");
+        dispatch(
+          setInformationText("An error occurred while looking for a game.")
+        );
       }
     };
 
@@ -114,7 +124,7 @@ const GameLobbyScreen: React.FC<GameLobbyScreenProps> = ({
 
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="large" color="#FF6347" />
+      {loading && <ActivityIndicator size="large" color="#FF6347" />}
       <Text style={styles.loadingText}>{informationText}</Text>
     </View>
   );

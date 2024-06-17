@@ -1,13 +1,26 @@
-import { ScreenProps } from "../../App";
+import React, { useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState, AppDispatch } from "../redux/store";
+import { setUser } from "../redux/slices/userSlice";
 import { fetchUserAttributes } from "aws-amplify/auth";
-import { useState } from "react";
+import { ScreenProps } from "../../App";
 
 const SearchGameScreen = ({ navigation }: ScreenProps<"HomeScreen">) => {
-  const [username, setUsername] = useState<String>("");
-  fetchUserAttributes().then((attributes) => {
-    setUsername(attributes?.preferred_username ?? "");
-  });
+  const dispatch: AppDispatch = useDispatch();
+  const username = useSelector((state: RootState) => state.user.username);
+
+  useEffect(() => {
+    fetchUserAttributes().then((attributes) => {
+      dispatch(
+        setUser({
+          username: attributes?.preferred_username ?? "",
+          id: attributes?.sub ?? "",
+          email: attributes?.email ?? "",
+        })
+      );
+    });
+  }, [dispatch]);
 
   return (
     <View style={styles.container}>
