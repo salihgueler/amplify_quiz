@@ -84,7 +84,6 @@ const QuestionScreen: React.FC<QuestionScreenProps> = ({
     });
 
     return () => {
-      console.log("Cleaning up subscription");
       subscription.unsubscribe();
     };
   }, []); // The empty array ensures useEffect is called only once
@@ -138,7 +137,7 @@ const QuestionScreen: React.FC<QuestionScreenProps> = ({
         id: params.gameId,
         finished: true,
       });
-      navigation.navigate("ResultScreen", { score: newScore });
+      navigation.navigate("ResultScreen", { score: score });
     } else {
       // Update the game with the next question index
       await client.models.Game.update({
@@ -174,7 +173,8 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
   navigation,
   route,
 }) => {
-  const params = route.params?.score || 0;
+  const params = route.params?.score ?? 0;
+  console.log(route.params.score);
   const client = generateClient<Schema>();
 
   return (

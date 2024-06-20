@@ -25,14 +25,14 @@ interface UserData {
 
 const ProfileScreen: React.FC = () => {
   const [userData, setUserData] = useState<UserData>({
-    profilePicture: "https://via.placeholder.com/150",
+    profilePicture: "https://picsum.photos/200",
     username: "",
     id: "",
     email: "",
   });
 
   const [profilePictureFile, setProfilePictureFile] = useState<string>(
-    "https://via.placeholder.com/150"
+    "https://picsum.photos/200"
   );
 
   const [uploadProgress, setUploadProgress] = useState<number>(0);
@@ -41,7 +41,7 @@ const ProfileScreen: React.FC = () => {
   useEffect(() => {
     fetchUserAttributes().then((attributes) => {
       setUserData((prevUserData) => ({
-        ...prevUserData,
+        profilePicture: prevUserData.profilePicture,
         username: attributes?.preferred_username ?? "",
         id: user.userId,
         email: user.signInDetails?.loginId ?? "",
@@ -50,14 +50,21 @@ const ProfileScreen: React.FC = () => {
   }, [user]);
 
   useEffect(() => {
-    getUrl({ path: `profile-pictures/${user.userId}.png` }).then((result) => {
-      const profileUrl = result.url.toString();
-      setProfilePictureFile(profileUrl);
-      setUserData((prevUserData) => ({
-        ...prevUserData,
-        profilePicture: profileUrl,
-      }));
-    });
+    getUrl({ path: `profile-pictures/${user.userId}.png` })
+      .then((result) => {
+        const profileUrl = result.url.toString().trim();
+        setProfilePictureFile(profileUrl);
+        setUserData((prevUserData) => ({
+          username: prevUserData.username,
+          id: prevUserData.id,
+          email: prevUserData.email,
+          profilePicture: profileUrl,
+        }));
+      })
+      .catch((error) => {
+        console.error(error);
+        setProfilePictureFile("https://picsum.photos/200");
+      });
   }, []);
 
   const handleUpdateProfile = async () => {
@@ -118,7 +125,7 @@ const ProfileScreen: React.FC = () => {
     <View style={styles.container}>
       <TouchableOpacity onPress={pickImage}>
         <Image
-          source={{ uri: userData.profilePicture }}
+          source={{ uri: profilePictureFile }}
           style={styles.profilePicture}
           onError={(errorEvent) =>
             console.log("Error " + errorEvent.nativeEvent.error)
