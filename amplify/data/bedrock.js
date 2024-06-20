@@ -7,8 +7,10 @@ export function request(ctx) {
   Create exactly 10 questions, evenly distributed across the ${category} category. Ensure the questions are evenly distributed in different difficulty levels.
 
   Requirements for each question:
+  - If the category is Music or music, focus on Grunge between 1990-2000. Do not generate any other question besides this era. 
+  - If the category is Technology or technology, focus on software development. Do not bring any hardware questions.
   - Return the result as a JSON list containing JSON objects. 
-  - Return the question with json key 'question'.
+  - Return the question with json kewy 'question'.
   - Include 4 different answer options, with json key 'options', each a string.
   - Specify 1 correct answer, with json key 'correctAnswer', in string format.
   - Return the category with json key 'category'.
