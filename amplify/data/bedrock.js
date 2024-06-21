@@ -11,7 +11,6 @@ Requirements for each question:
 - Return the question with the JSON key 'question'.
 - Include 4 different answer options, with the JSON key 'options', each a string.
 - Specify 1 correct answer, with the JSON key 'correctAnswer', in string format.
-- If the question is in Japanese, add two fields with JSON key 'correctAnswerEnglish' and 'questionEnglish' for the translation of the question and correct answer.
 - Return the category with the JSON key 'category'.
 - Questions should not be repeated.
   `;

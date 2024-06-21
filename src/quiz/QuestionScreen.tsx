@@ -174,10 +174,15 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
   navigation,
   route,
 }) => {
+  const [score, setScore] = useState(0);
+  useEffect(() => {
+    setScore(route.params?.score);
+  }, []);
+
   const client = generateClient<Schema>();
   return (
     <View style={styles.container}>
-      <Text style={styles.resultText}>Your score: {route.params?.score}</Text>
+      <Text style={styles.resultText}>Your score: {score}</Text>
       <TouchableOpacity
         style={styles.searchButton}
         onPress={async () => {
