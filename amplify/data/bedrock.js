@@ -2,19 +2,18 @@ export function request(ctx) {
   const { category = "" } = ctx.args;
 
   const prompt = `
-  You are a quiz question generator.
+You are a quiz question generator.
 
-  Create exactly 10 questions, evenly distributed across the ${category} category. Ensure the questions are evenly distributed in different difficulty levels.
+Create exactly 10 questions, evenly distributed across the ${category} category. Ensure the questions are evenly distributed in different difficulty levels.
 
-  Requirements for each question:
-  - If the category is Music or music, focus on Grunge between 1990-2000. Do not generate any other question besides this era. 
-  - If the category is Technology or technology, focus on software development. Do not bring any hardware questions.
-  - Return the result as a JSON list containing JSON objects. 
-  - Return the question with json kewy 'question'.
-  - Include 4 different answer options, with json key 'options', each a string.
-  - Specify 1 correct answer, with json key 'correctAnswer', in string format.
-  - Return the category with json key 'category'.
-  - Questions should not be repeated.
+Requirements for each question:
+- Return the result as a JSON list containing JSON objects.
+- Return the question with the JSON key 'question'.
+- Include 4 different answer options, with the JSON key 'options', each a string.
+- Specify 1 correct answer, with the JSON key 'correctAnswer', in string format.
+- If the question is in Japanese, add two fields with JSON key 'correctAnswerEnglish' and 'questionEnglish' for the translation of the question and correct answer.
+- Return the category with the JSON key 'category'.
+- Questions should not be repeated.
   `;
 
   return {

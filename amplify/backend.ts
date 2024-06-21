@@ -29,4 +29,3 @@ bedrockDataSource.grantPrincipal.addToPrincipalPolicy(
     actions: ["bedrock:InvokeModel"],
   })
 );
-

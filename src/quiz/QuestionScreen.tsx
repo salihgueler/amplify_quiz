@@ -97,7 +97,6 @@ const QuestionScreen: React.FC<QuestionScreenProps> = ({
   }
 
   const currentQuestion = questions[currentQuestionIndex];
-
   const renderOptions = () => {
     return currentQuestion.options.map((option, index) => (
       <TouchableOpacity
@@ -123,6 +122,8 @@ const QuestionScreen: React.FC<QuestionScreenProps> = ({
   const handleOptionSelect = async (optionIndex: number) => {
     const isCorrect =
       currentQuestion.options[optionIndex] === currentQuestion.correctAnswer;
+    console.log(isCorrect);
+    console.log(currentQuestion.correctAnswer);
     let newScore = score;
     if (isCorrect) {
       newScore += 10;
@@ -173,13 +174,10 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
   navigation,
   route,
 }) => {
-  const params = route.params?.score ?? 0;
-  console.log(route.params.score);
   const client = generateClient<Schema>();
-
   return (
     <View style={styles.container}>
-      <Text style={styles.resultText}>Your score: {params}</Text>
+      <Text style={styles.resultText}>Your score: {route.params?.score}</Text>
       <TouchableOpacity
         style={styles.searchButton}
         onPress={async () => {
@@ -194,7 +192,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
           const currentItem = currentItemList.data[0];
           await client.models.Leaderboard.update({
             id: currentItem.id,
-            points: currentItem.points + params,
+            points: currentItem.points + route.params?.score,
           });
           navigation.replace("HomeScreen");
         }}
