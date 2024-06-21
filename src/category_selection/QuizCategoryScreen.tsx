@@ -15,6 +15,7 @@ const QuizCategoryScreen: React.FC<Props> = ({ navigation }) => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
   const categories: string[] = [
+    "History of QuizKnock",
     "History",
     "Science",
     "Geography",
