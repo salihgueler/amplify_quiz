@@ -1,19 +1,19 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   ScrollView,
+  TouchableOpacity,
 } from "react-native";
-import { RootStackParamList } from "../../App";
 import { NativeStackScreenProps } from "react-native-screens/lib/typescript/native-stack";
+import { RootStackParamList } from "../../App";
+import useCategorySelection from "../hooks/useCategorySelection";
+import CategoryButton from "../components/CategoryButton";
 
 type Props = NativeStackScreenProps<RootStackParamList, "QuizCategoryScreen">;
 
 const QuizCategoryScreen: React.FC<Props> = ({ navigation }) => {
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-
   const categories: string[] = [
     "History of QuizKnock",
     "History",
@@ -28,37 +28,7 @@ const QuizCategoryScreen: React.FC<Props> = ({ navigation }) => {
     "General Knowledge",
   ];
 
-  const toggleCategory = (category: string) => {
-    setSelectedCategories((prevSelectedCategories) =>
-      prevSelectedCategories.includes(category)
-        ? prevSelectedCategories.filter((c) => c !== category)
-        : [...prevSelectedCategories, category]
-    );
-  };
-
-  const renderCategories = () => {
-    return categories.map((category) => (
-      <TouchableOpacity
-        key={category}
-        style={[
-          styles.categoryButton,
-          selectedCategories.includes(category) &&
-            styles.selectedCategoryButton,
-        ]}
-        onPress={() => toggleCategory(category)}
-      >
-        <Text
-          style={[
-            styles.categoryButtonText,
-            selectedCategories.includes(category) &&
-              styles.selectedCategoryButtonText,
-          ]}
-        >
-          {category}
-        </Text>
-      </TouchableOpacity>
-    ));
-  };
+  const { selectedCategories, toggleCategory } = useCategorySelection([]);
 
   const handleNextScreen = () => {
     navigation.replace("GameLobbyScreen", { selectedCategories });
@@ -68,7 +38,14 @@ const QuizCategoryScreen: React.FC<Props> = ({ navigation }) => {
     <View style={styles.container}>
       <Text style={styles.heading}>Select Quiz Categories</Text>
       <ScrollView contentContainerStyle={styles.categoriesContainer}>
-        {renderCategories()}
+        {categories.map((category) => (
+          <CategoryButton
+            key={category}
+            category={category}
+            isSelected={selectedCategories.includes(category)}
+            onPress={() => toggleCategory(category)}
+          />
+        ))}
       </ScrollView>
       <TouchableOpacity style={styles.nextButton} onPress={handleNextScreen}>
         <Text style={styles.nextButtonText}>Next</Text>
@@ -96,27 +73,6 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     justifyContent: "center",
     alignItems: "center",
-  },
-  categoryButton: {
-    backgroundColor: "#ffffff",
-    borderWidth: 1,
-    borderColor: "#FF6347",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginVertical: 8,
-    marginHorizontal: 4,
-  },
-  selectedCategoryButton: {
-    backgroundColor: "#FF6347",
-  },
-  categoryButtonText: {
-    color: "#FF6347",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  selectedCategoryButtonText: {
-    color: "#ffffff",
   },
   nextButton: {
     backgroundColor: "#FF6347",

@@ -11,11 +11,11 @@ import {
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { TouchableOpacity } from "react-native-gesture-handler";
-import QuizCategoryScreen from "./src/category_selection/QuizCategoryScreen";
+import QuizCategoryScreen from "./src/screens/QuizCategoryScreen";
 import QuestionScreen, { ResultScreen } from "./src/quiz/QuestionScreen";
 import GameLobbyScreen from "./src/search_game/GameLobbyScreen";
-import ProfileScreen from "./src/profile/ProfileScreen";
-import LeaderboardScreen from "./src/leaderboard/LeaderboardScreen";
+import ProfileScreen from "./src/components/ProfileScreen";
+import LeaderboardScreen from "./src/screens/LeaderboardScreen";
 import SearchGameScreen from "./src/search_game/SearchGameScreen";
 
 export type RootStackParamList = {
