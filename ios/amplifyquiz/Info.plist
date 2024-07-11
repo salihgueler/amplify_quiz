@@ -27,7 +27,7 @@
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-          <string>com.anonymous.amplifyQuiz</string>
+          <string>dev.salih.amplifyQuiz</string>
         </array>
       </dict>
     </array>
@@ -42,6 +42,16 @@
       <key>NSAllowsLocalNetworking</key>
       <true/>
     </dict>
+    <key>NSCameraUsageDescription</key>
+    <string>Allow $(PRODUCT_NAME) to access your camera</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Allow $(PRODUCT_NAME) to access your microphone</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Allow $(PRODUCT_NAME) to access your photos</string>
+    <key>UIBackgroundModes</key>
+    <array>
+      <string>fetch</string>
+    </array>
     <key>UILaunchStoryboardName</key>
     <string>SplashScreen</string>
     <key>UIRequiredDeviceCapabilities</key>
@@ -68,7 +78,5 @@
     <string>Light</string>
     <key>UIViewControllerBasedStatusBarAppearance</key>
     <false/>
-    <key>NSPhotoLibraryUsageDescription</key>
-    <string>NSPhotoLibraryUsageDescription": "This app requires access to your photo library to allow you to select a profile picture.</string>
   </dict>
 </plist>
