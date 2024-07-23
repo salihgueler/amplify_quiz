@@ -51,10 +51,14 @@ const ProfileScreen: React.FC = () => {
   }, [user]);
 
   useEffect(() => {
-    getUrl({ path: `profile-pictures/${user.userId}.png` }).then((result) => {
-      const profileUrl = result.url.toString();
-      dispatch(setProfilePictureFile(profileUrl));
-    });
+    getUrl({ path: `profile-pictures/${user.userId}.png` })
+      .then((result) => {
+        const profileUrl = result.url.toString();
+        dispatch(setProfilePictureFile(profileUrl));
+      })
+      .catch((error) => {
+        dispatch(setProfilePictureFile("https://via.placeholder.com/150"));
+      });
   }, []);
 
   const handleUpdateProfile = async () => {
@@ -112,7 +116,7 @@ const ProfileScreen: React.FC = () => {
     <View style={styles.container}>
       <TouchableOpacity onPress={pickImage}>
         <Image
-          source={{ uri: profilePictureFile }}
+          source={{ uri: userData.profilePicture }}
           style={styles.profilePicture}
           onError={(errorEvent) =>
             console.log("Error " + errorEvent.nativeEvent.error)
